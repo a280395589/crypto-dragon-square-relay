@@ -1,0 +1,49 @@
+name: Crypto Dragon Square relay
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Read-only connectivity probe or one server-authorized job
+        type: choice
+        options:
+          - probe
+          - publish
+        default: probe
+        required: true
+      job_id:
+        description: Exact server-issued job UUID; required only for publish
+        type: string
+        default: ''
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crypto-dragon-square-relay
+  cancel-in-progress: false
+
+jobs:
+  square-relay:
+    if: github.repository == 'a280395589/crypto-dragon-square-relay'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out relay source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Use Node.js 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.21.0'
+      - name: Run exactly one relay operation
+        env:
+          CCA_SQUARE_RELAY_MODE: ${{ inputs.mode }}
+          JOB_ID: ${{ inputs.job_id }}
+          CCA_SQUARE_RELAY_ORIGIN: ${{ vars.CCA_SQUARE_RELAY_ORIGIN }}
+          CCA_SQUARE_RELAY_HOSTNAME: ${{ vars.CCA_SQUARE_RELAY_HOSTNAME }}
+          CCA_SQUARE_RELAY_SECRET: ${{ secrets.CCA_SQUARE_RELAY_SECRET }}
+          CCA_BINANCE_SQUARE_POST_KEY: ${{ secrets.CCA_BINANCE_SQUARE_POST_KEY }}
+        run: node scripts/square-relay-runner.mjs
